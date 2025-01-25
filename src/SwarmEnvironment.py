@@ -18,4 +18,22 @@ class SwarmEnvironment(Env):
                 initial_phi=np.random.uniform(0, 2*np.pi)
             ) for _ in range(n_agents)
         ]
-        
+
+        # action / observation spaces
+        self.action_space = spaces.Discrete(5)
+
+        obs_size = 3 * (1 + 2)
+        self.observation_space = spaces.Box(
+            low=np.array([0, 0, 0] * (1 + 2)),
+            high=np.array([np.pi, 2*np.pi, 1] * (1 + 2)),
+            dtype=np.float32
+        )
+
+        # Performance optimization
+        self._action_to_direction = {
+            0: (1, 0),    # Move toward pole
+            1: (-1, 0),   # Move toward equator
+            2: (0, 1),    # Move east
+            3: (0, -1),   # Move west
+            4: (0, 0)     # Stay
+        }
