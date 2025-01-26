@@ -37,3 +37,28 @@ class SwarmEnvironment(Env):
             3: (0, -1),   # Move west
             4: (0, 0)     # Stay
         }
+
+    def _get_state(self, agent_idx):
+        agent = self.agents[agent_idx]
+        agent_pos = np.array(agent.get_position())
+
+        # locate 2 nearest neighbors using vectorized operations
+        positions = np.array([a.get_position() for a in self.agents])
+        distances = np.sum((positions - agent_pos)**2, axis=1)
+        distances[agent_idx] = np.inf
+        neighbor_indices = np.argpartition(distances, 2)[:2]
+
+        # state vector
+        state = np.zeros(9, dtype=np.float32)
+
+        # self
+        state[0:2] = agent_pos
+        state[2] = self.energy_field.get_energy_at_position(*agent_pos)
+
+        # neighbors
+        for i, idx in enumerate(neighbor_indices):
+            pos = positions[idx]
+            state[3+i*3:5+i*3] = pos
+            state[5+i*3] = self.energy_field.get_energy_at_position(*pos)
+        
+        return state
