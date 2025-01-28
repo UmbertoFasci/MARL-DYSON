@@ -25,3 +25,30 @@ The initial development of MARL system is based on the class definition of the s
 collection, directionality, and movement is defined. This is a simple implementation of the swarm agent rule set, and more will
 be experimented with in the future. These future experiements include a ruleset introduction where only a single agent can occupy
 a coordinate location at a time, thus limiting movement and generating a more dynamic environment.
+
+# Swarm Environment
+
+```mermaid
+graph TD
+    A[SwarmEnvironment] --> B[StarEnergyField]
+    A --> C[SwarmAgents]
+    
+    subgraph Environment
+        B -- Energy Values --> C
+        C -- Get Position --> B
+        C -- Collect Energy --> B
+    end
+    
+    subgraph Agent Actions
+        C --> D[Move]
+        C --> E[Collect]
+        C --> F[Get Position]
+    end
+    
+    subgraph Environment Loop
+        A --> G[Reset]
+        A --> H[Step]
+        H --> I[Get State]
+        H --> J[Calculate Reward]
+    end
+```
