@@ -62,3 +62,31 @@ class SwarmEnvironment(Env):
             state[5+i*3] = self.energy_field.get_energy_at_position(*pos)
         
         return state
+    
+    def step(self, actions):
+        self.current_step += 1
+        total_reward = 0
+        done = self.current_step >= self.max_steps
+
+        # move agentsand collect rewards
+        for agent_idx, action in enumerate(actions):
+            direction = self._action_to_direction[action]
+            self.agents[agent_idx].move(direction)
+            reward = self.agents[agent_idx].collect_energy(self.energy_field)
+            total_reward += reward
+        
+        # states for all agents
+        states = np.array([self._get_state(i) for i in range(self.n_agents)])
+        return states, total_reward, done, {}
+    
+    def reset(self):
+        self.current_step = 0
+
+        # reset agents to random positions
+        for agent in self.agents:
+            agent.theta = np.random.uniform(0, np.pi)
+            agent.phi = np.random.uniform(0. 2*np.pi)
+            agent.energy_collected = 0
+            agent.position_history = [(agent.theta, agent.phi)]
+        
+        return np.array([self._get_state(i) for i in range(self.n_agents)])
