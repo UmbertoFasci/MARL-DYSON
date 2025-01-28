@@ -85,7 +85,7 @@ class SwarmEnvironment(Env):
         # reset agents to random positions
         for agent in self.agents:
             agent.theta = np.random.uniform(0, np.pi)
-            agent.phi = np.random.uniform(0. 2*np.pi)
+            agent.phi = np.random.uniform(0, 2*np.pi)
             agent.energy_collected = 0
             agent.position_history = [(agent.theta, agent.phi)]
         
