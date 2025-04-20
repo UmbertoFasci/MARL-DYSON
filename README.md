@@ -19,36 +19,85 @@ all values remain in the [0,1] range.
 
 <img src="https://github.com/UmbertoFasci/MARL-DYSON/blob/main/documentation_assets/energy_animation.gif" width="70%" height="70%"/>
 
+### Discretization of the Spherical Domain
+
+```python
+theta = np.linspace(0, np.pi, resolution)
+phi = np.linspace(0, 2*np.pi, resolution)
+self.theta, self.phi = np.meshgrid(theta, phi)
+```
+
+This creates a discretized grid over the entire spherical surface using standard spherical coordinates:
+- θ ∈ [0, π] spans from the north pole (θ=0) to south pole (θ=π)
+- φ ∈ [0, 2π] covers the full longitudinal rotation
+
+The choice of uniform discretization with `resolution` points enables a computational tradeoff: higher values provide better spatial accuracy at the cost of increased computational complexity (O(resolution²)).
+
+### Stochastic Field Generation
+
+```python
+random_field = np.random.rand(self.resolution, self.resolution)
+```
+
+This initializes a random field following a uniform distribution U(0,1). Mathematically, each point (i,j) in the field is assigned a value:
+
+$$F_0(i,j) \sim \mathcal{U}(0,1)$$
+
+This represents a white noise process with zero spatial correlation. The uniform distribution was selected rather than, for instance, Gaussian or power-law distributions, to ensure maximum entropy in the initial state.
+
+### Spatial Correlation via Gaussian Filtering
+
+```python
+smoothed_field = gaussian_filter(random_field, sigma=self.smoothing)
+```
+
+This operation transforms the white noise field into a correlated field through convolution with a Gaussian kernel:
+
+$$F_1(i,j) = \sum_{k,l} F_0(k,l) \cdot G_\sigma(i-k, j-l)$$
+
+Where the Gaussian kernel is defined as:
+
+$$G_\sigma(x,y) = \frac{1}{2\pi\sigma^2} e^{-\frac{x^2+y^2}{2\sigma^2}}$$
+
+The parameter `sigma` (σ) has profound effects on the resulting field:
+- It establishes the correlation length scale between points
+- It controls the characteristic size of energy "features" on the sphere
+- It determines the smoothness of gradients in the field
+
+### Normalization for Scale Invariance
+
+```python
+return (smoothed_field - smoothed_field.min()) / (smoothed_field.max() - smoothed_field.min())
+```
+
+This performs min-max normalization, transforming the field to the range [0,1]:
+
+$$F_2(i,j) = \frac{F_1(i,j) - \min(F_1)}{\max(F_1) - \min(F_1)}$$
+
+This normalization serves several purposes:
+1. Creates a dimensionless energy measure independent of absolute scale
+2. Ensures consistency across different random initializations
+3. Simplifies agent reward calculations by bounding all possible values
+
+### Position-Based Energy Lookup
+
+```python
+def get_energy_at_position(self, theta, phi):
+    theta_idx = np.argmin(np.abs(np.linspace(0, np.pi, self.resolution) - theta))
+    phi_idx = np.argmin(np.abs(np.linspace(0, 2*np.pi, self.resolution) - phi))
+    return self.energy_field[phi_idx, theta_idx]
+```
+
+This implements nearest-neighbor interpolation in the spherical coordinate space. For any continuous position (θ,φ), it finds the closest discretized grid point using the L1-norm:
+
+$$\text{idx}_\theta = \arg\min_i |θ_i - θ|$$
+$$\text{idx}_\phi = \arg\min_j |\phi_j - \phi|$$
+
+The lookup returns $F_2(\text{idx}_\phi, \text{idx}_\theta)$, effectively creating a piecewise-constant function over the sphere. This approach was chosen for computational efficiency, though alternative interpolation methods (bilinear, cubic) could provide smoother transitions at the cost of computational complexity.
+
 # Swarm Agent Definition
 
 The initial development of MARL system is based on the class definition of the swarm agent, where coordinate location, energy
 collection, directionality, and movement is defined. This is a simple implementation of the swarm agent rule set, and more will
 be experimented with in the future. These future experiements include a ruleset introduction where only a single agent can occupy
 a coordinate location at a time, thus limiting movement and generating a more dynamic environment.
-
-# Swarm Environment
-
-```mermaid
-graph TD
-    A[SwarmEnvironment] --> B[StarEnergyField]
-    A --> C[SwarmAgents]
-    
-    subgraph Environment
-        B -- Energy Values --> C
-        C -- Get Position --> B
-        C -- Collect Energy --> B
-    end
-    
-    subgraph Agent Actions
-        C --> D[Move]
-        C --> E[Collect]
-        C --> F[Get Position]
-    end
-    
-    subgraph Environment Loop
-        A --> G[Reset]
-        A --> H[Step]
-        H --> I[Get State]
-        H --> J[Calculate Reward]
-    end
-```
