@@ -92,6 +92,7 @@ def get_energy_at_position(self, theta, phi):
 This implements nearest-neighbor interpolation in the spherical coordinate space. For any continuous position (θ,φ), it finds the closest discretized grid point using the L1-norm:
 
 $$\text{idx}_\theta = \arg\min_i |θ_i - θ|$$
+
 $$\text{idx}_\phi = \arg\min_j |\phi_j - \phi|$$
 
 The lookup returns $F_2(\text{idx}_\phi, \text{idx}_\theta)$, effectively creating a piecewise-constant function over the sphere. This approach was chosen for computational efficiency, though alternative interpolation methods (bilinear, cubic) could provide smoother transitions at the cost of computational complexity.
